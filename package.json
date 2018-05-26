@@ -1,0 +1,13 @@
+{
+  "name": "coffeecoffeecoffee",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "debug": "DEBUG=coffeecoffeecoffee:server node ./bin/www"
+  },
+  "dependencies": {
+    "debug": "~2.6.9",
+    "express": "~4.16.0"
+  }
+}
