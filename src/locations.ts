@@ -6,23 +6,35 @@ const debugLog = debug('coffeecoffeecoffee:locations');
 
 export = locations;
 
+// Extending to add `cast` option; @types/csv-parse is outdated and doesn't support it
+interface OptionsWithCast extends parse.Options {
+    /**
+     * If true, the parser will attempt to convert input string to native types. If a function, receive the value as
+     * first argument, a context as second argument and return a new value.
+     */
+    cast?: boolean;
+}
+
 namespace locations {
     interface Location {
-        id: string;
+        id: number;
         name: string;
         address: string;
-        lat: string;
-        lng: string;
+        lat: number;
+        lng: number;
     }
 
     export async function load(path: string) {
         debugLog("Start loading locations");
         return new Promise<Location[]>((resolve, reject) => {
             let locationList = new Array<Location>();
+
+            // parses into objects conforming to Location interface (and trims whitespace)
             let parser = parse({
+                'cast': true,
                 'columns': ['id', 'name', 'address', 'lat', 'lng'],
                 'trim': true
-            });
+            } as OptionsWithCast);
 
             function onError(err: Error) {
                 debugLog('Error on load');
