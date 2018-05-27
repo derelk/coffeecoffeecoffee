@@ -26,8 +26,15 @@ namespace locations {
         lng: number;
     }
 
+    /**
+     * Loads a CSV file from the given path and returns the promise of a LocationDatabase containing that file's data.
+     * File format is assumed to be 5 columns: id (number), name (string), address (string), latitude (number),
+     * longitude (number).
+     * @param {string} path
+     * @returns {Promise<locations.LocationDatabase>}
+     */
     export async function load(path: string) {
-        debugLog("Start loading locations");
+        debugLog('Start loading locations');
         return new Promise<LocationDatabase>((resolve, reject) => {
             let locationDatabase = new LocationDatabase();
 
@@ -52,21 +59,30 @@ namespace locations {
                 }
             });
             parser.on('end', () => {
-                debugLog("Finish loading locations");
+                debugLog('Finish loading locations');
                 resolve(locationDatabase);
             });
 
             let stream = fs.createReadStream(path);
             stream.on('error', onError);
+
+            // don't pipe into CSV parser until the file handler is successfully opened
             stream.on('open', () => {
                 stream.pipe(parser);
             });
         });
     }
 
+    /**
+     * In-memory data store for coffee shop locations.
+     */
     export class LocationDatabase {
         private locationMap: LocationMap;
 
+        /**
+         * Create a new LocationDatabase, optionally initialized with an existing LocationMap (Map<number, Location>).
+         * @param {LocationMap} locationMap (optional; defaults to empty database)
+         */
         constructor(locationMap?: LocationMap) {
             this.locationMap = locationMap ? locationMap : new Map<number, Location>();
         }
