@@ -1,9 +1,10 @@
 import app from "./app";
 import debug from "debug";
 import http from "http";
+import locations from "./locations";
 import ErrnoException = NodeJS.ErrnoException;
 
-const debugLog = debug('coffeecoffeecoffee');
+const debugLog = debug('coffeecoffeecoffee:server');
 
 /**
  * Get port from environment and store in Express.
@@ -12,19 +13,18 @@ const debugLog = debug('coffeecoffeecoffee');
 const port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
 
-/**
- * Create HTTP server.
- */
-
 const server = http.createServer(app);
-
-/**
- * Listen on provided port, on all network interfaces.
- */
-
-server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+const FILENAME = './data/locations.csv';
+locations.load(FILENAME).then((res) => {
+    debugLog('Loaded %s locations', res.length);
+    server.listen(port);
+}).catch((err) => {
+    console.error('Failed to load locations database: %s', err.message);
+    process.exitCode = 1;
+});
 
 /**
  * Normalize a port into a number, string, or false.
