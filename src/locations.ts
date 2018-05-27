@@ -15,8 +15,10 @@ interface OptionsWithCast extends parse.Options {
     cast?: boolean;
 }
 
+type LocationMap = Map<number, locations.Location>;
+
 namespace locations {
-    interface Location {
+    export interface Location {
         id: number;
         name: string;
         address: string;
@@ -26,8 +28,8 @@ namespace locations {
 
     export async function load(path: string) {
         debugLog("Start loading locations");
-        return new Promise<Location[]>((resolve, reject) => {
-            let locationList = new Array<Location>();
+        return new Promise<LocationDatabase>((resolve, reject) => {
+            let locationDatabase = new LocationDatabase();
 
             // parses into objects conforming to Location interface (and trims whitespace)
             let parser = parse({
@@ -43,15 +45,15 @@ namespace locations {
 
             parser.on('error', onError);
             parser.on('readable', () => {
-                let record: Location;
-                while (record = parser.read()) {
-                    debugLog(record);
-                    locationList.push(record);
+                let location: Location;
+                while (location = parser.read()) {
+                    debugLog(location);
+                    locationDatabase.add(location.id, location);
                 }
             });
             parser.on('end', () => {
                 debugLog("Finish loading locations");
-                resolve(locationList);
+                resolve(locationDatabase);
             });
 
             let stream = fs.createReadStream(path);
@@ -60,5 +62,25 @@ namespace locations {
                 stream.pipe(parser);
             });
         });
+    }
+
+    export class LocationDatabase {
+        private locationMap: LocationMap;
+
+        constructor(locationMap?: LocationMap) {
+            this.locationMap = locationMap ? locationMap : new Map<number, Location>();
+        }
+
+        add(id: number, location: Location) {
+            this.locationMap.set(id, location);
+        }
+
+        get(id: number) {
+            return this.locationMap.get(id);
+        }
+
+        get size(): number {
+            return this.locationMap.size;
+        }
     }
 }

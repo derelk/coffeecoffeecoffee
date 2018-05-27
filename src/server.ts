@@ -1,7 +1,7 @@
 import app from "./app";
 import debug from "debug";
 import http from "http";
-import locations from "./locations";
+import locations, {LocationDatabase} from "./locations";
 import ErrnoException = NodeJS.ErrnoException;
 
 const debugLog = debug('coffeecoffeecoffee:server');
@@ -18,11 +18,11 @@ server.on('error', onError);
 server.on('listening', onListening);
 
 const FILENAME = './data/locations.csv';
-locations.load(FILENAME).then((res) => {
-    debugLog('Loaded %s locations', res.length);
+locations.load(FILENAME).then((locationDatabase: LocationDatabase) => {
+    debugLog('Loaded %s locations', locationDatabase.size);
     server.listen(port);
 }).catch((err) => {
-    console.error('Failed to load locations database: %s', err.message);
+    console.error('Failed to load location database: %s', err.message);
     process.exitCode = 1;
 });
 
