@@ -1,4 +1,5 @@
 import debug from "debug";
+import GeoTree from "geo-tree";
 import fs from "fs";
 import parse from "csv-parse";
 
@@ -40,9 +41,9 @@ namespace locations {
 
             // parses into objects conforming to Location interface (and trims whitespace)
             let parser = parse({
-                'cast': true,
-                'columns': ['id', 'name', 'address', 'lat', 'lng'],
-                'trim': true
+                cast: true,
+                columns: ['id', 'name', 'address', 'lat', 'lng'],
+                trim: true
             } as OptionsWithCast);
 
             function onError(err: Error) {
@@ -55,7 +56,7 @@ namespace locations {
                 let location: Location;
                 while (location = parser.read()) {
                     debugLog(location);
-                    locationDatabase.add(location.id, location);
+                    locationDatabase.add(location);
                 }
             });
             parser.on('end', () => {
@@ -77,21 +78,21 @@ namespace locations {
      * In-memory data store for coffee shop locations.
      */
     export class LocationDatabase {
-        private locationMap: LocationMap;
+        private locationMap: LocationMap = new Map<number, Location>();
+        private tree: GeoTree = new GeoTree();
 
         /**
-         * Create a new LocationDatabase, optionally initialized with an existing LocationMap (Map<number, Location>).
-         * @param {LocationMap} locationMap (optional; defaults to empty database)
+         * Creates a new, empty LocationDatabase.
          */
-        constructor(locationMap?: LocationMap) {
-            this.locationMap = locationMap ? locationMap : new Map<number, Location>();
+        constructor() {
         }
 
-        add(id: number, location: Location) {
-            this.locationMap.set(id, location);
+        add(location: Location): void {
+            this.locationMap.set(location.id, location);
+            this.tree.insert({lat: location.lat, lng: location.lng, data: location.id});
         }
 
-        get(id: number) {
+        get(id: number): Location | undefined {
             return this.locationMap.get(id);
         }
 
