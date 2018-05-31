@@ -25,57 +25,57 @@ export interface ILocation {
 }
 
 /**
- * Loads a CSV file from the given path and returns the promise of a LocationDatabase containing that file's data.
- * File format is assumed to be 5 columns: id (number), name (string), address (string), latitude (number),
- * longitude (number).
- * @param {string} path
- * @returns {Promise<locations.LocationDatabase>}
- */
-export async function load(path: string) {
-    debugLog('Start loading locations');
-    return new Promise<LocationDatabase>((resolve, reject) => {
-        let locationDatabase = new LocationDatabase();
-
-        // parses into objects conforming to ILocation interface (and trims whitespace)
-        let parser = parse({
-            cast: true,
-            columns: ['id', 'name', 'address', 'lat', 'lng'],
-            trim: true,
-        } as IOptionsWithCast);
-
-        function onError(err: Error) {
-            debugLog('Error on load');
-            reject(err);
-        }
-
-        parser.on('error', onError);
-        parser.on('readable', () => {
-            let location: ILocation = parser.read();
-            while (location) {
-                debugLog(location);
-                locationDatabase.add(location);
-                location = parser.read();
-            }
-        });
-        parser.on('end', () => {
-            debugLog('Finish loading locations');
-            resolve(locationDatabase);
-        });
-
-        let stream = fs.createReadStream(path);
-        stream.on('error', onError);
-
-        // don't pipe into CSV parser until the file handler is successfully opened
-        stream.on('open', () => {
-            stream.pipe(parser);
-        });
-    });
-}
-
-/**
  * In-memory data store for coffee shop locations.
  */
-export class LocationDatabase {
+export default class LocationDatabase {
+    /**
+     * Loads a CSV file from the given path and returns the promise of a LocationDatabase containing that file's data.
+     * File format is assumed to be 5 columns: id (number), name (string), address (string), latitude (number),
+     * longitude (number).
+     * @param {string} path
+     * @returns {Promise<locations.LocationDatabase>}
+     */
+    public static async load(path: string) {
+        debugLog('Start loading locations');
+        return new Promise<LocationDatabase>((resolve, reject) => {
+            let locationDatabase = new LocationDatabase();
+
+            // parses into objects conforming to ILocation interface (and trims whitespace)
+            let parser = parse({
+                cast: true,
+                columns: ['id', 'name', 'address', 'lat', 'lng'],
+                trim: true,
+            } as IOptionsWithCast);
+
+            function onError(err: Error) {
+                debugLog('Error on load');
+                reject(err);
+            }
+
+            parser.on('error', onError);
+            parser.on('readable', () => {
+                let location: ILocation = parser.read();
+                while (location) {
+                    debugLog(location);
+                    locationDatabase.add(location);
+                    location = parser.read();
+                }
+            });
+            parser.on('end', () => {
+                debugLog('Finish loading locations');
+                resolve(locationDatabase);
+            });
+
+            let stream = fs.createReadStream(path);
+            stream.on('error', onError);
+
+            // don't pipe into CSV parser until the file handler is successfully opened
+            stream.on('open', () => {
+                stream.pipe(parser);
+            });
+        });
+    }
+
     // Map of location ID to ILocation object.
     private locationMap: LocationMap = new Map<number, ILocation>();
 

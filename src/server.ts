@@ -3,7 +3,7 @@ import http from 'http';
 import ErrnoException = NodeJS.ErrnoException;
 
 import app from './app';
-import * as locations from './locations';
+import LocationDatabase from './locations';
 
 const debugLog = debug('coffeecoffeecoffee:server');
 
@@ -17,8 +17,8 @@ server.on('listening', onListening);
 
 // Load location database from file before proceeding with binding the server
 const FILENAME = './data/locations.csv';
-locations.load(FILENAME)
-    .then((locationDatabase: locations.LocationDatabase) => {
+LocationDatabase.load(FILENAME)
+    .then((locationDatabase: LocationDatabase) => {
         debugLog('Loaded %s locations', locationDatabase.size);
         server.listen(port);
 })
