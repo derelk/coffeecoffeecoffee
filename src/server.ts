@@ -1,8 +1,9 @@
-import app from "./app";
-import debug from "debug";
-import http from "http";
-import locations from "./locations";
+import debug from 'debug';
+import http from 'http';
 import ErrnoException = NodeJS.ErrnoException;
+
+import app from './app';
+import * as locations from './locations';
 
 const debugLog = debug('coffeecoffeecoffee:server');
 
@@ -31,17 +32,15 @@ locations.load(FILENAME)
  * @param {string} val
  * @returns {any}
  */
-function normalizePort(val: string) {
-    let port = parseInt(val, 10);
+function normalizePort(val: string): any {
+    let portValue = parseInt(val, 10);
 
-    if (isNaN(port)) {
+    if (isNaN(portValue)) {
         // named pipe
         return val;
-    }
-
-    if (port >= 0) {
+    } else if (portValue >= 0) {
         // port number
-        return port;
+        return portValue;
     }
 
     return false;
