@@ -39,10 +39,10 @@ npm run debug
 ## Design
 
 ### Data structure
-I considered a number of data structures and libraries for this project:
+I considered a number of data structures and libraries for this project to store geographic data in a way that allows for efficient search for nearest locations.
 
 #### ❌ Array:
-This would obviously be easiest, and the O(n) search time would be fine in practice for this small of a data set. However, it's a poor (i.e. inefficient) general solution. Plus, it's no fun to pick the easy way.
+Iterating through an array of all locations and calculating the distance to each would obviously be easiest, and the O(n) search time would be fine in practice for this small of a data set. However, it's a poor (i.e. inefficient) general solution. Plus, it's no fun to pick the easy way.
 
 #### ❌ k-d-tree:
 k-d trees are for multidimensional space in the mathematical sense, and this library doesn't seem to account for the potentially vast difference between Euclidean distance and great-circle distance, the latter being necessary for this project. I didn't test it, but in looking at the code I don't think this library could behave correctly, e.g. further from the equator, bias towards longitudinal neighbors increases.
