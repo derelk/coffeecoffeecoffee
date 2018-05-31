@@ -76,7 +76,12 @@ export async function load(path: string) {
  * In-memory data store for coffee shop locations.
  */
 export class LocationDatabase {
+    // Map of location ID to ILocation object.
     private locationMap: LocationMap = new Map<number, ILocation>();
+
+    /* The `data` field of the GeoTree entries is a number referencing the ILocation's `id` property, i.e. the key of
+     * the ILocation in `locationMap`.
+     */
     private tree: GeoTree = new GeoTree();
 
     /**
@@ -86,16 +91,60 @@ export class LocationDatabase {
     constructor() {
     }
 
-    public add(location: ILocation): void {
-        this.locationMap.set(location.id, location);
-        this.tree.insert({lat: location.lat, lng: location.lng, data: location.id});
+    /**
+     * The current number of locations in the database
+     *
+     * @returns {number}
+     */
+    public get size(): number {
+        return this.locationMap.size;
     }
 
+    /**
+     * Inserts the given ILocation into the database.
+     *
+     * @param {ILocation} location
+     */
+    public add(location: ILocation): void {
+        this.update(location);
+    }
+
+    /**
+     * Returns the ILocation with the the given ID if it exists, or undefined if not.
+     *
+     * @param {number} id of ILocation
+     * @returns {ILocation | undefined}
+     */
     public get(id: number): ILocation | undefined {
         return this.locationMap.get(id);
     }
 
-    public get size(): number {
-        return this.locationMap.size;
+    /**
+     * Updates a location in the database. Succeeds unconditionally and is functionally equivalent to `add()`.
+     *
+     * @param {ILocation} location
+     */
+    public update(location: ILocation): void {
+        /* WARNING:
+         * There is no way to update a location in the GeoTree, nor a way to conditionally insert. This function will
+         * therefore insert duplicates at the same location or another location. This must be accounted for in search.
+         */
+        this.locationMap.set(location.id, location);
+        this.tree.insert({lat: location.lat, lng: location.lng, data: location.id});
+    }
+
+    /**
+     * Removes the ILocation with the given ID from the database, if it exists.
+     *
+     * @param {number} id
+     * @returns {boolean} whether an ILocation was successfully removed
+     */
+    public remove(id: number): boolean {
+        /* WARNING:
+         * There is no way to remove a location from the GeoTree. This function only deletes the location from the map,
+         * and `find()` results on the tree will continue to return otherwise-deleted locations. This must be accounted
+         * for in search.
+         */
+        return this.locationMap.delete(id);
     }
 }
