@@ -3,7 +3,7 @@ import http from 'http';
 import ErrnoException = NodeJS.ErrnoException;
 
 import app from './app';
-import LocationDatabase from './locations';
+import LocationDatabase from './locations/location-database';
 
 const debugLog = debug('coffeecoffeecoffee:server');
 
