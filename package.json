@@ -6,8 +6,8 @@
     "start": "npm run serve",
     "serve": "node dist/server.js",
     "debug": "DEBUG=coffeecoffeecoffee:* npm run serve",
-    "build": "npm run lint && tsc",
-    "lint": "tslint -c tslint.json --project tsconfig.json"
+    "build": "npm run lint && ./node_modules/typescript/bin/tsc",
+    "lint": "./node_modules/ts-lint/bin/tslint -c tslint.json --project tsconfig.json"
   },
   "dependencies": {
     "csv-parse": "^2.4.0",

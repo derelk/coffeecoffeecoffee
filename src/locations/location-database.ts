@@ -5,7 +5,7 @@ import GeoTree from 'geo-tree';
 
 import Location from './location';
 
-const debugLog = debug('coffeecoffeecoffee:locations');
+const debugLog = debug('coffeecoffeecoffee:location-database');
 
 // Extending to add `cast` option; @types/csv-parse is outdated and doesn't support it
 interface IOptionsWithCast extends parse.Options {

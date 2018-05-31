@@ -15,25 +15,21 @@ To compile the TypeScript files to JavaScript before running:
 ```
 npm run build
 ```
-Note: These instructions assume you've globally installed typescript by running:
-```
-npm -g install typescript
-```
-and have the `tsc` binary in your path. If that's not the case and you're unable to do so, you can run:
-```
-./node_modules/typescript/bin/tsc
-```
-to build instead.
 
 ### Running
+To run the server:
 ```
 npm start
 ```
-to run the server.
 
-If you want debug output, run:
+If you want all debug output, run:
 ```
 npm run debug
+```
+
+You can also limit debug output to specific modules:
+```
+DEBUG=coffeecoffeecoffee:server npm run serve
 ```
 
 ## Design
