@@ -16,6 +16,12 @@ To compile the TypeScript files to JavaScript before running:
 npm run build
 ```
 
+### Testing
+To run all unit tests with coverage report:
+```
+npm run test
+```
+
 ### Running
 To run the server:
 ```
