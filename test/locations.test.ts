@@ -65,9 +65,19 @@ describe('LocationDatabase', () => {
             expect(db.get(location.id)).toBeDefined();
             let size = db.size;
 
-            db.remove(location.id);
+            expect(db.remove(location.id)).toBe(true);
             expect(db.get(location.id)).toBeUndefined();
             expect(db.size).toBe(size - 1);
+        });
+
+        test('delete non-existent', () => {
+            const id = 999;
+            expect(db.get(id)).toBeUndefined();
+            let size = db.size;
+
+            expect(db.remove(id)).toBe(false);
+            expect(db.get(id)).toBeUndefined();
+            expect(db.size).toBe(size);
         });
     });
 });

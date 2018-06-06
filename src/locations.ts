@@ -20,8 +20,6 @@ interface IOptionsWithCast extends parse.Options {
     cast?: boolean;
 }
 
-type LocationMap = Map<number, Location>;
-
 export interface ILocation {
     id: number;
     name: string;
@@ -36,13 +34,15 @@ class Location implements ILocation {
     public address: string;
     public lat: number;
     public lng: number;
+    public treeLocationID: number;
 
-    constructor(location: ILocation) {
+    constructor(location: ILocation, treeLocationID: number) {
         this.id = location.id;
         this.name = location.name;
         this.address = location.address;
         this.lat = location.lat;
         this.lng = location.lng;
+        this.treeLocationID = treeLocationID;
     }
 }
 
@@ -98,12 +98,32 @@ export default class LocationDatabase {
         });
     }
 
-    // Map of location ID to Location object.
-    private locationMap: LocationMap = new Map<number, Location>();
+    // Sequentially incrementing ID for locations added to GeoTree
+    protected static nextTreeLocationID = -1;
 
-    /* The `data` field of the GeoTree entries is a number referencing the Location's `id` property, i.e. the key of
-     * the Location in `locationMap`.
+    protected static getNextTreeLocationID(): number {
+        // I feel weird not using a mutex, but the internet insists Node is thread-safe except in extenuating
+        // circumstances that don't seem to apply here.
+        LocationDatabase.nextTreeLocationID += 1;
+        return LocationDatabase.nextTreeLocationID;
+    }
+
+    /* The limitation of being unable to update or remove entries from the GeoTree requires some internal gymnastics.
+     * There are two IDs: the public location ID, as loaded from the CSV file and visible as `ILocation.id`; and an
+     * internal tree location ID, which is an incremental ID that is never re-used and stored in the GeoTree as the
+     * `data` property. When a location is updated, it will have a new underlying ID in the GeoTree, and the mapping
+     * from the old tree ID is discarded, effectively erasing it (as long as the `find()` results are filtered to remove
+     * old locations that no longer map).
      */
+
+    // Map of location ID to Location object.
+    private locationMap = new Map<number, Location>();
+
+    // Map of tree location ID to Location ID.
+    private treeLocationMap = new Map<number, number>();
+
+    // The `data` field of the GeoTree entries is a number referencing the Location's `treeLocationID` property, i.e.
+    // the key of `treeLocationMap`.
     private tree: GeoTree = new GeoTree();
 
     /**
@@ -147,12 +167,16 @@ export default class LocationDatabase {
      * @param {ILocation} location
      */
     public update(location: ILocation): void {
-        /* WARNING:
-         * There is no way to update a location in the GeoTree, nor a way to conditionally insert. This function will
-         * therefore insert duplicates at the same location or another location. This must be accounted for in search.
-         */
-        this.locationMap.set(location.id, location);
-        this.tree.insert({lat: location.lat, lng: location.lng, data: location.id});
+        // Effectively erase previous location by deleting its treeLocationID fom the map
+        let prevLocation = this.locationMap.get(location.id);
+        if (prevLocation) {
+            this.treeLocationMap.delete(prevLocation.treeLocationID);
+        }
+
+        let updatedLocation = new Location(location, LocationDatabase.getNextTreeLocationID());
+        this.locationMap.set(updatedLocation.id, updatedLocation);
+        this.treeLocationMap.set(updatedLocation.treeLocationID, updatedLocation.id);
+        this.tree.insert({ lat: updatedLocation.lat, lng: updatedLocation.lng, data: updatedLocation.treeLocationID });
     }
 
     /**
@@ -162,11 +186,11 @@ export default class LocationDatabase {
      * @returns {boolean} whether a location was successfully removed
      */
     public remove(id: number): boolean {
-        /* WARNING:
-         * There is no way to remove a location from the GeoTree. This function only deletes the location from the map,
-         * and `find()` results on the tree will continue to return otherwise-deleted locations. This must be accounted
-         * for in search.
-         */
+        let location = this.locationMap.get(id);
+        if (!location) {
+            return false;
+        }
+        this.treeLocationMap.delete(location.treeLocationID);
         return this.locationMap.delete(id);
     }
 }
