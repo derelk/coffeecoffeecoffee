@@ -3,9 +3,13 @@ import debug from 'debug';
 import fs from 'fs';
 import GeoTree from 'geo-tree';
 
-import Location from './location';
+/* tslint:disable:max-classes-per-file
+ * I like this idea generally, but the lack of package-level privacy complicates it. I couldn't find a way to only
+ * expose the `ILocation` interface in the public API if they weren't within the same file, and I want to keep Location
+ * private due to strictly internal data that needs to be stored on it.
+ */
 
-const debugLog = debug('coffeecoffeecoffee:location-database');
+const debugLog = debug('coffeecoffeecoffee:locations');
 
 // Extending to add `cast` option; @types/csv-parse is outdated and doesn't support it
 interface IOptionsWithCast extends parse.Options {
@@ -17,6 +21,30 @@ interface IOptionsWithCast extends parse.Options {
 }
 
 type LocationMap = Map<number, Location>;
+
+export interface ILocation {
+    id: number;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+}
+
+class Location implements ILocation {
+    public id: number;
+    public name: string;
+    public address: string;
+    public lat: number;
+    public lng: number;
+
+    constructor(location: ILocation) {
+        this.id = location.id;
+        this.name = location.name;
+        this.address = location.address;
+        this.lat = location.lat;
+        this.lng = location.lng;
+    }
+}
 
 /**
  * In-memory data store for coffee shop locations.
@@ -34,7 +62,7 @@ export default class LocationDatabase {
         return new Promise<LocationDatabase>((resolve, reject) => {
             let locationDatabase = new LocationDatabase();
 
-            // parses into objects conforming to Location interface (and trims whitespace)
+            // parses into objects conforming to ILocation interface (and trims whitespace)
             let parser = parse({
                 cast: true,
                 columns: ['id', 'name', 'address', 'lat', 'lng'],
@@ -48,7 +76,7 @@ export default class LocationDatabase {
 
             parser.on('error', onError);
             parser.on('readable', () => {
-                let location: Location = parser.read();
+                let location: ILocation = parser.read();
                 while (location) {
                     debugLog(location);
                     locationDatabase.add(location);
@@ -95,30 +123,30 @@ export default class LocationDatabase {
     }
 
     /**
-     * Inserts the given Location into the database.
+     * Inserts the given location into the database.
      *
-     * @param {Location} location
+     * @param {ILocation} location
      */
-    public add(location: Location): void {
+    public add(location: ILocation): void {
         this.update(location);
     }
 
     /**
-     * Returns the Location with the the given ID if it exists, or undefined if not.
+     * Returns the location with the the given ID if it exists, or undefined if not.
      *
-     * @param {number} id of Location
-     * @returns {Location | undefined}
+     * @param {number} id of location
+     * @returns {ILocation | undefined}
      */
-    public get(id: number): Location | undefined {
+    public get(id: number): ILocation | undefined {
         return this.locationMap.get(id);
     }
 
     /**
      * Updates a location in the database. Succeeds unconditionally and is functionally equivalent to `add()`.
      *
-     * @param {Location} location
+     * @param {ILocation} location
      */
-    public update(location: Location): void {
+    public update(location: ILocation): void {
         /* WARNING:
          * There is no way to update a location in the GeoTree, nor a way to conditionally insert. This function will
          * therefore insert duplicates at the same location or another location. This must be accounted for in search.
@@ -128,10 +156,10 @@ export default class LocationDatabase {
     }
 
     /**
-     * Removes the Location with the given ID from the database, if it exists.
+     * Removes the location with the given ID from the database, if it exists.
      *
      * @param {number} id
-     * @returns {boolean} whether a Location was successfully removed
+     * @returns {boolean} whether a location was successfully removed
      */
     public remove(id: number): boolean {
         /* WARNING:

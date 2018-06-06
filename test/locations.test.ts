@@ -1,5 +1,5 @@
-import Location from '../src/locations/location';
-import LocationDatabase from '../src/locations/location-database';
+import { ILocation } from '../src/locations';
+import LocationDatabase from '../src/locations';
 
 describe('LocationDatabase', () => {
     test('create empty LocationDatabase', () => {
@@ -32,7 +32,7 @@ describe('LocationDatabase', () => {
         /* tslint:disable:object-literal-sort-keys
          * Shouldn't be a problem with the match-declaration-order config, but it's not working due to
          * https://github.com/palantir/tslint/issues/3586 */
-        let location: Location = {
+        let location: ILocation = {
             id: 14,
             name: 'Wildcraft Espresso Bar',
             address: '2299 Market St',
@@ -46,18 +46,18 @@ describe('LocationDatabase', () => {
             let size = db.size;
 
             db.add(location);
-            expect(db.get(location.id)).toEqual(location);
+            expect(db.get(location.id)).toMatchObject(location);
             expect(db.size).toBe(size + 1);
         });
 
         test('update', () => {
-            expect(db.get(location.id)).toEqual(location);
+            expect(db.get(location.id)).toMatchObject(location);
             let size = db.size;
 
             let newLocation = Object.assign({}, location);
             newLocation.name = 'Ritual Coffee Roasters';  // Wildcraft closed and was replaced by a Ritual
             db.update(newLocation);
-            expect(db.get(location.id)).toEqual(newLocation);
+            expect(db.get(location.id)).toMatchObject(newLocation);
             expect(db.size).toBe(size);
         });
 
