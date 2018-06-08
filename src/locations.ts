@@ -2,6 +2,7 @@ import parse from 'csv-parse';
 import debug from 'debug';
 import fs from 'fs';
 import GeoTree from 'geo-tree';
+import geolib from 'geolib';
 
 /* tslint:disable:max-classes-per-file
  * I like this idea generally, but the lack of package-level privacy complicates it. I couldn't find a way to only
@@ -20,12 +21,15 @@ interface IOptionsWithCast extends parse.Options {
     cast?: boolean;
 }
 
-export interface ILocation {
+export interface ICoordinates {
+    lat: number;
+    lng: number;
+}
+
+export interface ILocation extends ICoordinates {
     id: number;
     name: string;
     address: string;
-    lat: number;
-    lng: number;
 }
 
 class Location implements ILocation {
@@ -192,5 +196,41 @@ export default class LocationDatabase {
         }
         this.treeLocationMap.delete(location.treeLocationID);
         return this.locationMap.delete(id);
+    }
+
+    /**
+     * Finds the location nearest to the given coordinates within the given radius.
+     * @param {ICoordinates} coordinates
+     * @param {number} radius in miles (default: 1)
+     * @returns {ILocation | undefined} nearest ILocation, or undefined if none found within radius
+     */
+    public findNearest(coordinates: ICoordinates, radius = 1): ILocation | undefined {
+        // tuple of (distance, Location) used to track which location is nearest
+        let closest: [number, Location | undefined] = [Number.MAX_SAFE_INTEGER, undefined];
+
+        // all locations within 1 mi, unordered
+        let treeIDs: number[] = this.tree.find(coordinates, radius, 'mi');
+
+        // For each tree ID, see if it's still active, i.e. in treeLocationMap. If not, it was deleted or updated.
+        // If so, look up the Location object and calculate the distance and track which is closest.
+        for (let treeID of treeIDs) {
+            let locationID = this.treeLocationMap.get(treeID);
+            if (locationID) {
+                let location = this.locationMap.get(locationID);
+                if (location) {
+                    let distance = geolib.getDistance(
+                        {latitude: coordinates.lat, longitude: coordinates.lng},
+                        {latitude: location.lat, longitude: location.lng},
+                    );
+                    debugLog([distance, location]);
+                    if (distance < closest[0]) {
+                        closest[0] = distance;
+                        closest[1] = location;
+                    }
+                }
+            }
+        }
+        debugLog(closest);
+        return closest[1];
     }
 }
