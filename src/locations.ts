@@ -26,10 +26,13 @@ export interface ICoordinates {
     lng: number;
 }
 
-export interface ILocation extends ICoordinates {
-    id: number;
+export interface INewLocation extends ICoordinates {
     name: string;
     address: string;
+}
+
+export interface ILocation extends INewLocation {
+    id: number;
 }
 
 class Location implements ILocation {
@@ -83,7 +86,12 @@ export default class LocationDatabase {
                 let location: ILocation = parser.read();
                 while (location) {
                     debugLog(location);
-                    locationDatabase.add(location);
+                    locationDatabase.update(location);
+
+                    // Keep track of highest ID used
+                    if (location.id > locationDatabase.nextLocationID) {
+                        locationDatabase.nextLocationID = location.id;
+                    }
                     location = parser.read();
                 }
             });
@@ -102,23 +110,11 @@ export default class LocationDatabase {
         });
     }
 
+    // Sequentially incrementing ID for locations added to database
+    protected nextLocationID = -1;
+
     // Sequentially incrementing ID for locations added to GeoTree
     protected nextTreeLocationID = -1;
-
-    protected getNextTreeLocationID(): number {
-        // I feel weird not using a mutex, but the internet insists Node is thread-safe except in extenuating
-        // circumstances that don't seem to apply here.
-        this.nextTreeLocationID += 1;
-        return this.nextTreeLocationID;
-    }
-
-    /* The limitation of being unable to update or remove entries from the GeoTree requires some internal gymnastics.
-     * There are two IDs: the public location ID, as loaded from the CSV file and visible as `ILocation.id`; and an
-     * internal tree location ID, which is an incremental ID that is never re-used and stored in the GeoTree as the
-     * `data` property. When a location is updated, it will have a new underlying ID in the GeoTree, and the mapping
-     * from the old tree ID is discarded, effectively erasing it (as long as the `find()` results are filtered to remove
-     * old locations that no longer map).
-     */
 
     // Map of location ID to Location object.
     private locationMap = new Map<number, Location>();
@@ -137,6 +133,14 @@ export default class LocationDatabase {
     constructor() {
     }
 
+    /* The limitation of being unable to update or remove entries from the GeoTree requires some internal gymnastics.
+     * There are two IDs: the public location ID, as loaded from the CSV file and visible as `ILocation.id`; and an
+     * internal tree location ID, which is an incremental ID that is never re-used and stored in the GeoTree as the
+     * `data` property. When a location is updated, it will have a new underlying ID in the GeoTree, and the mapping
+     * from the old tree ID is discarded, effectively erasing it (as long as the `find()` results are filtered to remove
+     * old locations that no longer map).
+     */
+
     /**
      * The current number of locations in the database
      *
@@ -147,12 +151,17 @@ export default class LocationDatabase {
     }
 
     /**
-     * Inserts the given location into the database.
+     * Assigns an ID to the given location and inserts it into the database. Do not use this with an ILocation, which
+     * already has an ID; use `update()` instead.
      *
-     * @param {ILocation} location
+     * @param {INewLocation} location
+     * @returns {ILocation}
      */
-    public add(location: ILocation): void {
-        this.update(location);
+    public add(location: INewLocation): ILocation {
+        let newLocation = location as ILocation;
+        newLocation.id = this.getNextLocationID();
+        this.update(newLocation);
+        return newLocation;
     }
 
     /**
@@ -170,7 +179,8 @@ export default class LocationDatabase {
     }
 
     /**
-     * Updates a location in the database. Succeeds unconditionally and is functionally equivalent to `add()`.
+     * Updates a location in the database. Succeeds unconditionally, whether or not this is actually an updated location
+     * or a new one. It differs from `add()` only in that `add()` determines the `id` of the location.
      *
      * @param {ILocation} location
      */
@@ -236,5 +246,18 @@ export default class LocationDatabase {
         }
         debugLog(closest);
         return closest[1];
+    }
+
+    protected getNextLocationID(): number {
+        // I feel weird not using a mutex, but the internet insists Node is thread-safe except in extenuating
+        // circumstances that don't seem to apply here.
+        this.nextLocationID += 1;
+        return this.nextLocationID;
+    }
+
+    protected getNextTreeLocationID(): number {
+        // Same mutex disclaimer as above
+        this.nextTreeLocationID += 1;
+        return this.nextTreeLocationID;
     }
 }

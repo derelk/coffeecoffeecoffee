@@ -1,4 +1,4 @@
-import LocationDatabase, { ILocation } from '../src/locations';
+import LocationDatabase, { ILocation, INewLocation } from '../src/locations';
 
 describe('LocationDatabase creation', () => {
     test('create empty LocationDatabase', () => {
@@ -27,13 +27,12 @@ describe('LocationDatabase creation', () => {
 });
 
 describe('LocationDatabase CRUD', () => {
-    let db = new LocationDatabase();
+    const db = new LocationDatabase();
 
     /* tslint:disable:object-literal-sort-keys
      * Shouldn't be a problem with the match-declaration-order config, but it's not working due to
      * https://github.com/palantir/tslint/issues/3586 */
-    let location: ILocation = {
-        id: 14,
+    const newLocation: INewLocation = {
         name: 'Wildcraft Espresso Bar',
         address: '2299 Market St',
         lat: 37.7641264665863,
@@ -41,33 +40,36 @@ describe('LocationDatabase CRUD', () => {
     };
     /* tslint:enable:object-literal-sort-keys */
 
+    const addedLocation = newLocation as ILocation;
+    addedLocation.id = 1;  // first location, so ID will be 1
+
     test('create and read', () => {
-        expect(db.get(location.id)).toBeUndefined();
+        expect(db.get(addedLocation.id)).toBeUndefined();
         let size = db.size;
 
-        db.add(location);
-        expect(db.get(location.id)).toMatchObject(location);
-        expect(db.get(location.id)).not.toHaveProperty('treeLocationID');
+        expect(db.add(newLocation)).toMatchObject(addedLocation);
+        expect(db.get(addedLocation.id)).toMatchObject(addedLocation);
+        expect(db.get(addedLocation.id)).not.toHaveProperty('treeLocationID');
         expect(db.size).toBe(size + 1);
     });
 
     test('update', () => {
-        expect(db.get(location.id)).toMatchObject(location);
+        expect(db.get(addedLocation.id)).toMatchObject(addedLocation);
         let size = db.size;
 
-        let newLocation = Object.assign({}, location);
-        newLocation.name = 'Ritual Coffee Roasters';  // Wildcraft closed and was replaced by a Ritual
-        db.update(newLocation);
-        expect(db.get(location.id)).toMatchObject(newLocation);
+        let updatedLocation = Object.assign({}, addedLocation);
+        updatedLocation.name = 'Ritual Coffee Roasters';  // Wildcraft closed and was replaced by a Ritual
+        db.update(updatedLocation);
+        expect(db.get(addedLocation.id)).toMatchObject(updatedLocation);
         expect(db.size).toBe(size);
     });
 
     test('delete', () => {
-        expect(db.get(location.id)).toBeDefined();
+        expect(db.get(addedLocation.id)).toBeDefined();
         let size = db.size;
 
-        expect(db.remove(location.id)).toBe(true);
-        expect(db.get(location.id)).toBeUndefined();
+        expect(db.remove(addedLocation.id)).toBe(true);
+        expect(db.get(addedLocation.id)).toBeUndefined();
         expect(db.size).toBe(size - 1);
     });
 
@@ -90,7 +92,7 @@ describe('LocationDatabase findNearest()', () => {
     const philz = { id: 1, name: 'Philz Coffee', address: '549 Castro St' };
     const spikes = { id: 2, name: "Spike's Coffee and Teas", address: '4117 18th St' };
     /* tslint:disable-next-line:object-literal-sort-keys */
-    const reveille: ILocation = { id: 3, name: 'Réveille Coffee Co.', address: '4076 18th St', lat: 37.76098725908006,
+    const reveille: INewLocation = { name: 'Réveille Coffee Co.', address: '4076 18th St', lat: 37.76098725908006,
         lng: -122.43446774623341 };
 
     let db: LocationDatabase;
@@ -104,7 +106,9 @@ describe('LocationDatabase findNearest()', () => {
     });
 
     test('find new location', () => {
-        db.add(reveille);
+        let added = db.add(reveille);
+        expect(added).toMatchObject(reveille);
+        expect(added.id).toBe(3);
         expect(db.findNearest(loc1)).toMatchObject(reveille);
     });
 
