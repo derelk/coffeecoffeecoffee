@@ -47,6 +47,7 @@ describe('LocationDatabase CRUD', () => {
 
         db.add(location);
         expect(db.get(location.id)).toMatchObject(location);
+        expect(db.get(location.id)).not.toHaveProperty('treeLocationID');
         expect(db.size).toBe(size + 1);
     });
 

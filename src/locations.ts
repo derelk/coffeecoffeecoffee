@@ -103,13 +103,13 @@ export default class LocationDatabase {
     }
 
     // Sequentially incrementing ID for locations added to GeoTree
-    protected static nextTreeLocationID = -1;
+    protected nextTreeLocationID = -1;
 
-    protected static getNextTreeLocationID(): number {
+    protected getNextTreeLocationID(): number {
         // I feel weird not using a mutex, but the internet insists Node is thread-safe except in extenuating
         // circumstances that don't seem to apply here.
-        LocationDatabase.nextTreeLocationID += 1;
-        return LocationDatabase.nextTreeLocationID;
+        this.nextTreeLocationID += 1;
+        return this.nextTreeLocationID;
     }
 
     /* The limitation of being unable to update or remove entries from the GeoTree requires some internal gymnastics.
@@ -162,7 +162,11 @@ export default class LocationDatabase {
      * @returns {ILocation | undefined}
      */
     public get(id: number): ILocation | undefined {
-        return this.locationMap.get(id);
+        let location = this.locationMap.get(id);
+        if (location) {
+            delete location.treeLocationID;
+        }
+        return location;
     }
 
     /**
@@ -177,7 +181,7 @@ export default class LocationDatabase {
             this.treeLocationMap.delete(prevLocation.treeLocationID);
         }
 
-        let updatedLocation = new Location(location, LocationDatabase.getNextTreeLocationID());
+        let updatedLocation = new Location(location, this.getNextTreeLocationID());
         this.locationMap.set(updatedLocation.id, updatedLocation);
         this.treeLocationMap.set(updatedLocation.treeLocationID, updatedLocation.id);
         this.tree.insert({ lat: updatedLocation.lat, lng: updatedLocation.lng, data: updatedLocation.treeLocationID });
