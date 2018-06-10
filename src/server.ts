@@ -1,3 +1,4 @@
+import config from 'config';
 import debug from 'debug';
 import http from 'http';
 import ErrnoException = NodeJS.ErrnoException;
@@ -8,7 +9,7 @@ import LocationDatabase from './locations';
 const debugLog = debug('coffeecoffeecoffee:server');
 
 // Get port from environment and store in Express.
-const port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(config.get('server.port'));
 app.set('port', port);
 
 const server = http.createServer(app);
@@ -16,8 +17,7 @@ server.on('error', onError);
 server.on('listening', onListening);
 
 // Load location database from file before proceeding with binding the server
-const FILENAME = './data/locations.csv';
-LocationDatabase.load(FILENAME)
+LocationDatabase.load(config.get('app.database'))
     .then((locationDatabase: LocationDatabase) => {
         debugLog('Loaded %s locations', locationDatabase.size);
         server.listen(port);

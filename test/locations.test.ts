@@ -1,3 +1,5 @@
+import config from 'config';
+
 import LocationDatabase, { ILocation, INewLocation } from '../src/locations';
 
 describe('LocationDatabase creation', () => {
@@ -8,7 +10,7 @@ describe('LocationDatabase creation', () => {
     });
 
     test('load test LocationDatabase', async () => {
-        let db = await LocationDatabase.load('./data/test.csv');
+        let db = await LocationDatabase.load(config.get('app.database'));
         expect(db).toBeDefined();
         expect(db.size).toBe(2);
 

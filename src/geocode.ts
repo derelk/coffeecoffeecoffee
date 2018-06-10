@@ -1,14 +1,14 @@
+import config from 'config';
 import request from 'request-promise-native';
 
 import { ICoordinates } from './locations';
 
-const API_KEY = '';
 const API_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 
 const geocodeRequest = request.defaults({
     json: true,
     qs: {
-        key: API_KEY,
+        key: config.get('geocode.key'),
     },
     uri: API_URL,
 });
