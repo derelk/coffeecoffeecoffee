@@ -13,10 +13,6 @@ const debugLog = debug('coffeecoffeecoffee:app');
 // Sane maximum input length for string fields
 const MAX_LENGTH = 100;
 
-const app = express();
-app.use(express.json());
-app.use(bodyParser.json());
-
 const idValidators = [
     param('id').isInt({min: 0}),
     sanitizeParam('id').toInt(),
@@ -38,23 +34,32 @@ const optionalBodyValidators = [
     sanitizeBody('lng').toFloat(),
 ];
 
-app.post('/locations', bodyValidators, router.postHandler);
-app.get('/locations/:id', idValidators, router.getHandler);
-app.put('/locations/:id', idValidators, bodyValidators, router.putHandler);
-app.patch('/locations/:id', idValidators, optionalBodyValidators, router.patchHandler);
-app.delete('/locations/:id', idValidators, router.deleteHandler);
+/**
+ * Loads the configured database file into a new location database and configures the router to use it.
+ *
+ * @returns {Promise<express.Application>} promise of a fully loaded Express application ready to attach to a server
+ */
+export function init(): Promise<express.Application> {
+    return new Promise<express.Application>((resolve, reject) => {
+        LocationDatabase.load(config.get('app.database'))
+            .then((locationDatabase: LocationDatabase) => {
+                debugLog('Loaded %s locations', locationDatabase.size);
+                router.setLocationDatabase(locationDatabase);
 
-const FILENAME = './data/locations.csv';
-const promise = new Promise<express.Application>((resolve, reject) => {
-    LocationDatabase.load(config.get('app.database'))
-        .then((locationDatabase: LocationDatabase) => {
-            debugLog('Loaded %s locations', locationDatabase.size);
-            router.setLocationDatabase(locationDatabase);
-            resolve(app);
-        })
-        .catch((err) => {
-            reject(err);
-        });
-});
+                const app = express();
+                app.use(express.json());
+                app.use(bodyParser.json());
 
-export { promise as app };
+                app.post('/locations', bodyValidators, router.postHandler);
+                app.get('/locations/:id', idValidators, router.getHandler);
+                app.put('/locations/:id', idValidators, bodyValidators, router.putHandler);
+                app.patch('/locations/:id', idValidators, optionalBodyValidators, router.patchHandler);
+                app.delete('/locations/:id', idValidators, router.deleteHandler);
+
+                resolve(app);
+            })
+            .catch((err) => {
+                reject(err);
+            });
+    });
+}

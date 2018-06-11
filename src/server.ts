@@ -3,7 +3,7 @@ import debug from 'debug';
 import http from 'http';
 import ErrnoException = NodeJS.ErrnoException;
 
-import { app } from './app';
+import * as app from './app';
 
 const debugLog = debug('coffeecoffeecoffee:server');
 
@@ -11,18 +11,18 @@ const debugLog = debug('coffeecoffeecoffee:server');
 const port = normalizePort(config.get('server.port'));
 
 let server: http.Server;
-app.
-then((app) => {
-    app.set('port', port);
-    server = http.createServer(app);
-    server.on('error', onError);
-    server.on('listening', onListening);
-    server.listen(port);
-}).
-catch((err) => {
-    console.error('Failed to initialize app: %s', err.message);
-    process.exitCode = 1;
-});
+app.init()
+    .then((app) => {
+        app.set('port', port);
+        server = http.createServer(app);
+        server.on('error', onError);
+        server.on('listening', onListening);
+        server.listen(port);
+    })
+    .catch((err) => {
+        console.error('Failed to initialize app: %s', err.message);
+        process.exitCode = 1;
+    });
 
 /**
  * Normalize a port into a number, string, or false.

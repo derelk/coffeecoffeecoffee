@@ -6,7 +6,7 @@
     "start": "npm run serve",
     "serve": "node dist/server.js",
     "debug": "DEBUG=coffeecoffeecoffee:* npm run serve",
-    "build": "npm run lint && ./node_modules/typescript/bin/tsc",
+    "build": "./node_modules/typescript/bin/tsc && npm run lint",
     "lint": "./node_modules/ts-lint/bin/tslint -c tslint.json 'src/**/*' 'test/**/*'",
     "test": "./node_modules/jest/bin/jest.js --coverage --verbose"
   },

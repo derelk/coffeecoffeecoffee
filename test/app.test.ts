@@ -1,13 +1,13 @@
 import http from 'http';
 import request from 'supertest';
 
-import { app } from '../src/app';
+import * as app from '../src/app';
 
 let server: http.Server;
 
 beforeAll(() => {
     return new Promise((resolve, reject) => {
-        app
+        app.init()
             .then((app) => {
                 server = http.createServer(app);
                 resolve();
