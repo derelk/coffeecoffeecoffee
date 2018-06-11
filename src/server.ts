@@ -3,28 +3,25 @@ import debug from 'debug';
 import http from 'http';
 import ErrnoException = NodeJS.ErrnoException;
 
-import app from './app';
-import LocationDatabase from './locations';
+import { app } from './app';
 
 const debugLog = debug('coffeecoffeecoffee:server');
 
 // Get port from environment and store in Express.
 const port = normalizePort(config.get('server.port'));
-app.set('port', port);
 
-const server = http.createServer(app);
-server.on('error', onError);
-server.on('listening', onListening);
-
-// Load location database from file before proceeding with binding the server
-LocationDatabase.load(config.get('app.database'))
-    .then((locationDatabase: LocationDatabase) => {
-        debugLog('Loaded %s locations', locationDatabase.size);
-        server.listen(port);
-})
-    .catch((err) => {
-        console.error('Failed to load location database: %s', err.message);
-        process.exitCode = 1;
+let server: http.Server;
+app.
+then((app) => {
+    app.set('port', port);
+    server = http.createServer(app);
+    server.on('error', onError);
+    server.on('listening', onListening);
+    server.listen(port);
+}).
+catch((err) => {
+    console.error('Failed to initialize app: %s', err.message);
+    process.exitCode = 1;
 });
 
 /**
