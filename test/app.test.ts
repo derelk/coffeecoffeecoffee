@@ -1,24 +1,27 @@
+import { Application } from 'express';
 import http from 'http';
 import request from 'supertest';
 
 import * as app from '../src/app';
 
-let server: http.Server;
-
-beforeAll(() => {
+function initApp(): Promise<http.Server> {
     return new Promise((resolve, reject) => {
         app.init()
             .then((app) => {
-                server = http.createServer(app);
-                resolve();
+                const server = http.createServer(app);
+                resolve(server);
             })
             .catch((err) => {
                 reject(err);
             });
     });
-});
-
+}
 describe('locations CRUD 20x', () => {
+    let server: http.Server;
+    beforeAll(async () => {
+        server = await initApp();
+    });
+
     test('create (POST)', async () => {
         const wildcraft = {
             address: '2299 Market St',
@@ -93,6 +96,11 @@ describe('locations CRUD 20x', () => {
 });
 
 describe('400', () => {
+    let server: http.Server;
+    beforeAll(async () => {
+        server = await initApp();
+    });
+
     test('POST /locations missing parameters', async () => {
         let response = await request(server).post('/locations').send({});
         expect(response.status).toBe(400);
@@ -379,6 +387,11 @@ describe('400', () => {
 });
 
 describe('404', () => {
+    let server: http.Server;
+    beforeAll(async () => {
+        server = await initApp();
+    });
+
     test('GET /locations', async () => {
         let response = await request(server).get('/locations');
         expect(response.status).toBe(404);
@@ -412,5 +425,97 @@ describe('404', () => {
     test('GET non-existent path', async () => {
         let response = await request(server).get('/location/1');
         expect(response.status).toBe(404);
+    });
+});
+
+describe('/locations/find', () => {
+    let server: http.Server;
+    beforeAll(async () => {
+        server = await initApp();
+    });
+
+    test('200', async () => {
+        let response = await request(server).get('/locations/find').query({address: '600 Castro St 94114'});
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+            address: '4117 18th St',
+            id: 2,
+            name: "Spike's Coffee and Teas",
+        });
+
+        response = await request(server).get('/locations/find').query({address: '440 Castro St San Francisco'});
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+            address: '549 Castro St',
+            id: 1,
+            name: 'Philz Coffee',
+        });
+
+        response = await request(server).get('/locations/find').query({address: 'Mt. Diablo, CA'});
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty('errors');
+        expect(response.body.errors.length).toBe(1);
+        expect(response.body.errors[0].msg).toMatch(/^no locations found/);
+    });
+
+    test('400', async () => {
+        let response = await request(server).get('/locations/find');
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('errors');
+        expect(response.body.errors.length).toBe(1);
+        expect(response.body.errors[0].param).toBe('address');
+
+        response = await request(server).get('/locations/find').query({
+            address: '12347837757237 Reeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeally Looooooooooooooooooooooooooooooooooo' +
+            'ong St',
+        });
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('errors');
+        expect(response.body.errors.length).toBe(1);
+        expect(response.body.errors[0].param).toBe('address');
+
+        response = await request(server).get('/locations/find').query({address: '6151 Squeedlyspooch Lane'});
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('errors');
+        expect(response.body.errors.length).toBe(1);
+        expect(response.body.errors[0].msg).toMatch('unable to geocode address');
+    });
+
+    test('find after add', async () => {
+        const reveille = {
+            address: '4076 18th St',
+            lat: 37.76098725908006,
+            lng: -122.43446774623341,
+            name: 'Réveille Coffee Co.',
+        };
+        let response = await request(server).post('/locations').send(reveille);
+        expect(response.status).toBe(201);
+        expect(response.body).toMatchObject(reveille);
+
+        response = await request(server).get('/locations/find').query({address: '440 Castro St San Francisco'});
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject(reveille);
+    });
+
+    test('find after delete', async () => {
+        const address = '600 Castro St 94114';
+        let response = await request(server).get('/locations/find').query({address});
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+            address: '4117 18th St',
+            id: 2,
+            name: "Spike's Coffee and Teas",
+        });
+
+        response = await request(server).delete('/locations/2');
+        expect(response.status).toBe(200);
+
+        response = await request(server).get('/locations/find').query({address});
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+            address: '549 Castro St',
+            id: 1,
+            name: 'Philz Coffee',
+        });
     });
 });

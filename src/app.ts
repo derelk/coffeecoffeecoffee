@@ -2,7 +2,7 @@ import bodyParser from 'body-parser';
 import config from 'config';
 import debug from 'debug';
 import express from 'express';
-import { body, param } from 'express-validator/check';
+import { body, param, query } from 'express-validator/check';
 import { sanitizeBody, sanitizeParam } from 'express-validator/filter';
 
 import LocationDatabase from './locations';
@@ -50,6 +50,8 @@ export function init(): Promise<express.Application> {
                 app.use(express.json());
                 app.use(bodyParser.json());
 
+                app.get('/locations/find', query('address').isLength({min: 1, max: MAX_LENGTH}).trim(),
+                    router.findHandler);
                 app.post('/locations', bodyValidators, router.postHandler);
                 app.get('/locations/:id', idValidators, router.getHandler);
                 app.put('/locations/:id', idValidators, bodyValidators, router.putHandler);

@@ -1,9 +1,10 @@
 import debug from 'debug';
-import { Request, Response} from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { validationResult } from 'express-validator/check';
 import pick from 'lodash.pick';
 
-import LocationDatabase, {ILocation, INewLocation} from '../locations';
+import geocode, {GeocodeError, GeocodeResponse} from '../geocode';
+import LocationDatabase, {ICoordinates, ILocation, INewLocation} from '../locations';
 
 const debugLog = debug('coffeecoffeecoffee:routes/locations');
 
@@ -76,4 +77,61 @@ export function deleteHandler(req: Request, res: Response): void {
 
     let status = database.remove(req.params.id) ? 200 : 404;
     res.status(status).end();
+}
+
+export async function findHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({errors: errors.array()}).end();
+    }
+
+    //
+    // Attempt to geocode address
+    //
+    let coordinates: ICoordinates;
+    try {
+        coordinates = await geocode(req.query.address);
+    } catch (err) {
+        if (err instanceof GeocodeError) {
+            if (err.code === GeocodeResponse.ZERO_RESULTS) {
+                // Effectively a user error; 400 for bad address input
+                res.status(400).json({
+                    errors: [{
+                        msg: 'unable to geocode address',
+                        value: req.query.address,
+                    }]}).end();
+            } else {
+                // Other failures are a server problem, e.g. over limit, bad key, etc.; let them 500
+                next(err);
+            }
+        } else {
+            // Unknown error in geocoding connection, let this 500 too
+            next(err);
+        }
+        return;
+    }
+
+    //
+    // Determine nearest location
+    //
+    let location: ILocation | undefined;
+
+    // Attempting to optimize distance sorting load by expecting to find nearby locations, but willing to expand up to 7
+    // miles if necessary.
+    for (let radius of [0.5, 1, 3, 7]) {
+        location = database.findNearest(coordinates, radius);
+        if (location) {
+            break;
+        }
+    }
+
+    if (!location) {
+        return res.status(200).json({
+            errors: [{
+                msg: 'no locations found within 7 miles',
+                value: req.query.address,
+            }]}).end();
+    } else {
+        return res.status(200).json(location).end();
+    }
 }

@@ -103,8 +103,13 @@ describe('LocationDatabase findNearest()', () => {
     });
 
     test('find from test file', () => {
-        expect(db.findNearest(loc1)).toMatchObject(philz);
+        let nearest1 = db.findNearest(loc1);
+        expect(nearest1).toMatchObject(philz);
+        expect(nearest1).not.toHaveProperty('treeLocationID');
+
+        let nearest2 = db.findNearest(loc2);
         expect(db.findNearest(loc2)).toMatchObject(spikes);
+        expect(nearest2).not.toHaveProperty('treeLocationID');
     });
 
     test('find new location', () => {

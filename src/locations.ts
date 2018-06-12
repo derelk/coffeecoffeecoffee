@@ -77,7 +77,7 @@ export default class LocationDatabase {
             } as IOptionsWithCast);
 
             function onError(err: Error) {
-                debugLog('Error on load');
+                debugLog('Error on database load');
                 reject(err);
             }
 
@@ -244,8 +244,13 @@ export default class LocationDatabase {
                 }
             }
         }
+
         debugLog(closest);
-        return closest[1];
+        const closestLocation = closest[1];
+        if (closestLocation) {
+            delete closestLocation.treeLocationID;
+        }
+        return closestLocation;
     }
 
     protected getNextLocationID(): number {
