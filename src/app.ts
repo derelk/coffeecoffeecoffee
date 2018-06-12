@@ -4,6 +4,7 @@ import debug from 'debug';
 import express from 'express';
 import { body, param, query } from 'express-validator/check';
 import { sanitizeBody, sanitizeParam } from 'express-validator/filter';
+import morgan from 'morgan';
 
 import LocationDatabase from './locations';
 import * as router from './routes/locations';
@@ -49,6 +50,10 @@ export function init(): Promise<express.Application> {
                 const app = express();
                 app.use(express.json());
                 app.use(bodyParser.json());
+
+                if (process.env.NODE_ENV !== 'test') {
+                    app.use(morgan('common'));
+                }
 
                 app.get('/locations/find', query('address').isLength({min: 1, max: MAX_LENGTH}).trim(),
                     router.findHandler);

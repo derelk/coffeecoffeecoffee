@@ -20,6 +20,7 @@
     "geo-tree": "^1.0.7",
     "geolib": "^2.0.24",
     "lodash.pick": "^4.4.0",
+    "morgan": "^1.9.0",
     "request-promise-native": "^1.0.5"
   },
   "devDependencies": {
@@ -30,6 +31,7 @@
     "@types/express": "^4.16.0",
     "@types/jest": "^22.2.3",
     "@types/lodash.pick": "^4.4.3",
+    "@types/morgan": "^1.7.35",
     "@types/node": "^10.3.2",
     "@types/request-promise-native": "^1.0.15",
     "@types/supertest": "^2.0.4",
